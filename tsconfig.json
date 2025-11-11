@@ -1,3 +1,5 @@
+//https://www.typescriptlang.org/tsconfig/#typeRoots
+
 {
   "compilerOptions": {
     "outDir": "./build/dist/",

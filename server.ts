@@ -1,3 +1,6 @@
+/// <reference path="./types/express.d.ts" />
+//https://www.typescriptlang.org/docs/handbook/triple-slash-directives.html
+
 import {config} from "./apiKeys";
 import express from "express";
 import path from "path";

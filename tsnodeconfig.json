@@ -1,3 +1,5 @@
+//https://www.typescriptlang.org/tsconfig/#typeRoots
+
 {
   "compileOnSave": true,
   "compilerOptions": {
@@ -20,12 +22,14 @@
       "watch": false,
       "incremental" : true,
       "skipLibCheck": true,
-      "noImplicitAny": false
+      "noImplicitAny": false,
+      "typeRoots": ["./types", "./node_modules/@types"]
   },
   "paths" : {
     "tslib/*": "node_modules/typescript/lib"
   },
   "include": [
+      "types/**/*",
       "server.ts",
       "localconfig.ts",
       "apiKeys.ts",

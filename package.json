@@ -35,7 +35,7 @@
     "Starter Template",
     "Boilerplate"
   ],
-  "author": "Vishwas",
+  "author": "Clarence Boddicker",
   "license": "MIT",
   "dependencies": {
     "@babel/core": "^7.20.5",
@@ -115,5 +115,9 @@
     "hooks": {
       "pre-commit": "lint-staged"
     }
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.7",
+    "@types/morgan": "^1.9.9"
   }
 }
