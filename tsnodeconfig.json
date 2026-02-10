@@ -5,7 +5,7 @@
   "compilerOptions": {
       "outDir": "./build/",
       "allowJs": true,
-      "target": "es5",
+      "target": "ES2020",
       "module": "commonjs",
       "alwaysStrict": false,
       "strict": false,
@@ -16,6 +16,7 @@
       "allowSyntheticDefaultImports": true,
       "charset": "utf8",
       "lib": [
+        "es2020",
         "es6"
       ],
       "sourceMap": true,

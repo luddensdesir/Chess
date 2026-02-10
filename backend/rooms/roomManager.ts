@@ -17,6 +17,7 @@ import Player from "../players/player";
 //TODO: keep track ofusers that joined and left game so they can't rejoin the same game unless invited
 //TODO: don't allow room or username less than 4 characters
 //TODO: when the new name is 0 length the wrong name gets changed
+//TODO: try to remove gamelogic dependency from room manager
 
 type userString = string;
 type roomString = string;
@@ -227,7 +228,7 @@ class RoomManager{
     return {result: this.rooms[roomID].movePiece(moveData), users: this.rooms[roomID].players};
   };
 
-  getValidMoves = (roomID, userID, location) => {
+  getRoomMoves = (roomID, userID, location) => {
     return this.rooms[roomID].getValidMoves(location);
   };
 

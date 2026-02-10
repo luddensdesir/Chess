@@ -1,12 +1,14 @@
-import {PB} from "./PieceTypes";
+import {Chesspiece, PB} from "./PieceTypes";
+export class Queen extends Chesspiece {
+  constructor(properties?, n?, a?){
+    super(properties, n, a);
+  }
 
-const move = () => {
-  return {x:"max", y:"max", constraint: PB.omnidirectional};
-};
+  private move = () => {
+    return {x:"max", y:"max", constraint: PB.omnidirectional};
+  };
 
-const Queen = (p) => {
-};
+  public displayName = "Queen";
+} 
 
-Queen.displayName = "Queen";
-Queen.move = move;
 export default Queen;

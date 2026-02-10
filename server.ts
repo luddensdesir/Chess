@@ -64,7 +64,8 @@ const dev = (curEnv === "development");
 require("pretty-error").start();
 
 
-app.use(cookieParser(config.cookieSecret, { httpOnly: true })); 
+TODO: //set httponly so that cookies are not accessible via client-side JavaScript
+app.use(cookieParser(config.cookieSecret/*, { httpOnly: true }*/)); 
 app.use(morgan("dev"));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -72,7 +73,7 @@ app.use(bodyParser.json());
 ejs.delimiter = "?";
 app.set("view engine", "ejs");
 
-app.use(express.static(path.join(__dirname, "build/dist"))); //don't remove this, needed fir /dist files
+app.use(express.static(path.join(__dirname, "build/dist"))); //don't remove this, needed for /dist files
 app.use(express.static("build/dist"));
 
 app.use(function(req, res, next) {
@@ -230,12 +231,14 @@ wss.on('connection', function connection(ws) {
     }
 
     if(inputCommands.command == "getInitialState"){
-      ws.send(JSON.stringify({command: "returnInitialState", newBoard: roomManager.getBasicBoard(ws['room'].getRoomID(), ws['userid'])}));
+      //TODO: //send bitboard either stringified or the actual numerical value
+      const initialState = roomManager.getBasicBoard(ws['room'].getRoomID(), ws['userid']);
+      ws.send(JSON.stringify({command: "returnInitialState", newBoard: initialState}));
     }
 
     if(inputCommands.command == "getValidMoves"){
-      const moves = roomManager.getValidMoves( ws['room'].getRoomID(), ws['userid'], inputCommands.location);
-      ws.send(JSON.stringify({command: "receiveMoves", movelist: moves}));
+      // const moves = roomManager.getRoomMoves( ws['room'].getRoomID(), ws['userid'], inputCommands.location);
+      // ws.send(JSON.stringify({command: "receiveMoves", movelist: moves}));
     }
     
     if(inputCommands.command == "movePiece"){

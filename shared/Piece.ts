@@ -1,6 +1,6 @@
 import React, { ReactElement, Component, useEffect, useState } from "react";
 import { v4 } from "uuid";
-import {getBehaviorFromType} from "./PieceTypes";
+import {Chesspiece} from "./PieceTypes";
 // import RCP from "react-chess-pieces";
 
 interface PieceProps{

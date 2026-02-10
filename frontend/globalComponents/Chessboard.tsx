@@ -1,16 +1,16 @@
 import React, { ReactElement, useState, useEffect} from "react";
-import { v4 } from "uuid";
+// import { v4 } from "uuid";
+// import Gamelogic from "../../shared/gamelogic";
 import Chesspiece from "./Pieces/Piece";
 import Roomlist from "./Roomlist";
 // import TodoListStore from "../stores/TodoListStore";
 // import LocalStore from "../stores/LocalStore";
 // import {getPieceFromType, PB} from "./Pieces/PieceTypes";
-import Gamelogic from "../../shared/gamelogic";
 import uniqid from 'uniqid';
 
 let socket;
-let WSHOST = window.location.host.split(":");
-WSHOST = "ws://" + WSHOST[0] + ":" + "8081";
+let WSHOST = window.location.host.split(":")[0];
+WSHOST = "ws://" + WSHOST + ":" + "8081";
 
 if(global.env !== "development") { 
   socket = new WebSocket( WSHOST, "protocolOne");
@@ -25,40 +25,54 @@ socket.onopen = () => {
 };
 
 
-enum orientation {
-  black= "down",
-  white= "up"
-}
+// enum orientation {
+//   black= "down",
+//   white= "up"
+// }
 
-const gamelogic = Gamelogic();
+// const gamelogic = Gamelogic();
 
 
 let initialPositions: Array<string[]> = [ 
-  ["rook black", "knight black", "bishop black", "queen black", "king black", "bishop black", "knight black", "rook black"],
-  ["pawn black", "pawn black", "pawn black", "pawn black", "pawn black", "pawn black", "pawn black", "pawn black"],
-  ["", "", "", "", "", "", "", ""],
-  ["", "", "", "", "", "", "", ""],
-  ["", "", "", "", "", "", "", ""],
-  ["", "", "", "", "", "", "", ""],
+  ["rook white", "knight white", "bishop white", "king white", "queen white", "bishop white", "knight white", "rook white"],
   ["pawn white", "pawn white", "pawn white", "pawn white", "pawn white", "pawn white", "pawn white", "pawn white"],
-  ["rook white", "knight white", "bishop white", "queen white", "king white", "bishop white", "knight white", "rook white"]
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["pawn black", "pawn black", "pawn black", "pawn black", "pawn black", "pawn black", "pawn black", "pawn black"],
+  ["rook black", "knight black", "bishop black", "king black", "queen black", "bishop black", "knight black", "rook black"],
 ];
 
 const Chessboard: React.FC = (): ReactElement => {
   const [delayedEvents, setDelayedEvents] = useState([]);
 
-//pass a move uuid from the backend and a time.
-  const intervalID = setInterval(() => { 
-    for(let i = 0; i < delayedEvents.length; i ++){
-      if (delayedEvents[i] && delayedEvents[i].command == "finishMove") {
-        if(finishMoveLocal(delayedEvents[i].location, delayedEvents[i].target, delayedEvents[i].moveID, delayedEvents[i].newBoard )){
-          delayedEvents[i] = null;       
-        }
-      }
-    }
+  // Process delayed events after React has applied state updates.
+  useEffect(() => {
+    if (!delayedEvents.length) return;
 
-    clearInterval(intervalID);
-  }, 50); //this is a hack to get the board to update when the store changes. I need to find a better way to do this
+    const timeoutId = setTimeout(() => {
+      setDelayedEvents((prev) => {
+        const remaining = [];
+
+        for (let i = 0; i < prev.length; i++) {
+          const evt = prev[i];
+          if (!evt) continue;
+
+          if (evt.command === "finishMove") {
+            finishMoveLocal(evt.location, evt.target, evt.moveID, evt.newBoard);
+            continue;
+          }
+
+          remaining.push(evt);
+        }
+
+        return remaining;
+      });
+    }, 50);
+
+    return () => clearTimeout(timeoutId);
+  }, [delayedEvents]);
 
 
   // useEffect(() => {
@@ -84,7 +98,7 @@ const Chessboard: React.FC = (): ReactElement => {
       } else if(inputCommands && inputCommands.command == "finishForeignMove"){
         finishForeignMove( inputCommands.location, inputCommands.target, inputCommands.moveID, inputCommands.newBoard);
       } else if (inputCommands && inputCommands.command == "finishMove") {
-        setDelayedEvents([...delayedEvents, inputCommands] ); 
+        setDelayedEvents((prev) => [...prev, inputCommands]);
       } else if (inputCommands && inputCommands.command == "receiveRoomInfo") {
         // setFocusedRoom(inputCommands.roomName);
       } else if (inputCommands && inputCommands.command == "updateRoomList") {
@@ -189,6 +203,7 @@ const Chessboard: React.FC = (): ReactElement => {
           <div className = {classes}
             id = {i +" " + k}
             onDragEnter = {(e)=>{
+
               if(!highlightActive){
                 // highlightActive = true;
                 // e.currentTarget.classList.add("glow");
@@ -260,6 +275,9 @@ const Chessboard: React.FC = (): ReactElement => {
 
   function finishInitializtion(newBoard){
     initialPositions = newBoard;
+
+    console.log(initialPositions);
+    
     setConstructedBoard(constructPositions());
   }
 
@@ -288,10 +306,10 @@ const Chessboard: React.FC = (): ReactElement => {
   
 
   function recieveMoves(validMoves){
-    // validMoves.forEach((i)=>{
-    //   const el = document.getElementById( i.x  + " " + i.y );
-    //   el.classList.add("moveglow");
-    // });
+    validMoves.forEach((i)=>{
+      const el = document.getElementById( i.x  + " " + i.y );
+      el.classList.add("moveglow");
+    });
   }
 
   // const clearHighlightedSquares = () => {
@@ -304,11 +322,11 @@ const Chessboard: React.FC = (): ReactElement => {
   //   }
   // };
 
-  // const getPieceFromCoords( org: {x: number, y: number} ){
+  // const getPieceFromCoords = ( org: {x: number, y: number} ) => {
   //   const piece = initialPositions[org.y][org.x];
   // };
   
-  // const getPieceIDFromCoords( org: {x: number, y: number} ){
+  // const getPieceIDFromCoords = ( org: {x: number, y: number} ) => {
   //   const piece = initialPositions[org.y][org.x];
   // };
 

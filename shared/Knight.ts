@@ -1,12 +1,16 @@
-import {PB} from "./PieceTypes";
+import {Chesspiece, PB} from "./PieceTypes";
 
-const move = () => {
-  return {x:3, y:1, constraint: PB.horsey};
-};
 
-const Knight = (p) => {
-};
 
-Knight.displayName = "Knight";
-Knight.move = move;
+export class Knight extends Chesspiece {
+  constructor(properties?, n?, a?){
+    super(properties, n, a);
+  }
+
+  private move = () => {
+    return {x:3, y:1, constraint: PB.horsey};
+  };
+  public displayName = "Knight";
+} 
+
 export default Knight;

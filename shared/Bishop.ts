@@ -1,12 +1,14 @@
-import {PB} from "./PieceTypes";
+import {Chesspiece, PB} from "./PieceTypes";
+ export class Bishop extends Chesspiece {
+  constructor(properties?, n?, a?){
+    super(properties, n, a);
+  }
 
-const move = () => {
-  return {x:"max", y:"max", constraint: PB.diagonal};
-};
+  private move = () => {
+    return {x:"max", y:"max", constraint: PB.diagonal};
+  };
 
-const Bishop = (p)=> {
-};
+  public displayName = "Bishop";
+} 
 
-Bishop.displayName = "Bishop";
-Bishop.move = move;
 export default Bishop;

@@ -1,13 +1,14 @@
-import {PB} from "./PieceTypes";
+import {Chesspiece, PB} from "./PieceTypes";
+export class Pawn extends Chesspiece {
+  constructor(properties?, n?, a?){
+    super(properties, n, a);
+  }
 
-const move = () => {
-  return {x: 1, y: 0, constraint: PB.forward };
-};
+  private move = () => {
+    return {x: 1, y: 0, constraint: PB.forward };
+  };
 
-const Pawn = (p) => {
-  
-};
+  public displayName = "Pawn";
+} 
 
-Pawn.displayName = "Pawn";
-Pawn.move = move;
 export default Pawn;

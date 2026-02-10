@@ -1,4 +1,4 @@
-import {PB} from "./PieceTypes";
+import {Chesspiece, PB} from "./PieceTypes";
 
 const move = () => {
   return {x:2, y:2, constraint: PB.omnidirectional};

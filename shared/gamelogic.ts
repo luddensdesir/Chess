@@ -1,7 +1,9 @@
 import { v4 } from "uuid";
-import {getBehaviorFromType, PB} from "./PieceTypes";
-import castleTest from "./boardStates/testBoards";
+import { Chesspiece, PB} from "./PieceTypes";
+import { Bitworld } from "./bitworld";
+// import castleTest from "./boardStates/testBoards";
 import _ from "lodash";
+const util = require('util');
 
   /*
     new Error().stack.indexOf("movePiece") != -1
@@ -11,7 +13,6 @@ import _ from "lodash";
 //cant castle out of check or through check BUT THE ROOK CAN MOVE THROUGH AN ATTACKED SQUARE
 //endgame if you get checkmated, can capture, but make the wrong move and fail tocapture, you lose
 //checkmate isn't properly calculated when the king can't move into a square that the other king is attacking
-//use bitflags OMG LOL
 
 //stalemate
 //draw by repetition or perepetual check
@@ -23,10 +24,10 @@ import _ from "lodash";
 //draw by adjudication
 //draw by insufficient mating material
 
-interface PinnedMoves{
-  pinner: Chesspiece;
-  moves: Array<Coords>;
-}
+// interface PinnedMoves{
+//   pinner: Chesspiece;
+//   moves: Array<Coords>;
+// }
 
 enum opp{
   black = "white",
@@ -54,144 +55,17 @@ interface Coords{
 let whiteKing: Chesspiece;
 let blackKing: Chesspiece;
 
-let whiteChecked = false;
-let blackChecked = false;
+// let whiteChecked = false;
+// let blackChecked = false;
 
-class Chesspiece {
-  constructor(properties?, n?, a?){
-    if(properties !== undefined && properties !== null){
-      const pieceInfo = properties.length != 0? properties.split(" "): [null, null];
- 
-      this.boardPosition = [n, a];
-      this.lastPosition = [n, a];
-      this.pieceType =  pieceInfo[0];
-      this.pieceColor = pieceInfo[1];
-      this.move = getBehaviorFromType(this.pieceType);
-      
-      this.captured = false;
-      this.inCheck = false;
-      this.neverMoved = true;
-      this.passingPawn = false;
-      this.setKingPos();
-      this.setPieceValue(this.pieceType);
-    }
-  }
-
-  //use this to make bots
-  private setPieceValue = (val)=>{
-    val = val.toLowerCase();
-    if(val== "pawn"){
-      this.value = 1;
-    } else if (val== "knight"){
-      this.value = 3;
-    } else if (val== "bishop"){
-      this.value = 3;
-    } else if (val== "rook"){
-      this.value = 5;
-    } else if (val== "queen"){
-      this.value = 9;
-    } else if (val== "king"){
-      this.value = 9001;
-    }
-  };
-
-  public getPieceValue = ()=>{
-    return this.value;
-  };
-  
-  public getBoardPosition=()=>{
-    return this.boardPosition;
-  }
-
-  public setLastPosition = (x, y)=>{
-    this.lastPosition[0] = parseInt(x);
-    this.lastPosition[1] = parseInt(y);
-  }
-
-  private setKingPos = ()=>{
-    if(this.pieceType == "king"){
-      if(this.pieceColor == "white"){
-        whiteKing = this;
-      } else if (this.pieceColor == "black"){
-        blackKing = this;
-      }
-    }
-  }
-
-  public setBoardPosition = (x, y)=>{
-    if((this.neverMoved == true) 
-      && (Math.abs(x - this.lastPosition[0]) == 2)
-      && (this.pieceType == "pawn")
-      ){
-        this.setPassingPawn(true);
-    } else {
-      this.passingPawn = false;
-    }
-
-    this.setKingPos();
-
-    this.setNeverMoved(false);
-    this.setLastPosition(this.boardPosition[0], this.boardPosition[1]);
-    this.boardPosition[0] = parseInt(x);
-    this.boardPosition[1] = parseInt(y);
-  }
-
-  public getBoardPositionClassID=()=>{
-    return this.boardPosition[0] + " " + this.boardPosition[1];
-  }
-
-  public getPieceBehavior=()=>{
-    return this.move;
-  }
-
-  public setNeverMoved=(newVal)=>{
-    this.neverMoved = newVal;
-  }
-  public setPassingPawn=(newVal)=>{
-    this.passingPawn = newVal;
-  }
-
-  public getNeverMoved=()=>{
-    return this.neverMoved;
-  }
-
-  public getPassingPawn=()=>{
-    return this.passingPawn;
-  }
-
-  public getPieceID=()=>{
-    return this.id;
-  }
-  
-  private value:number;
-  public name = "";
-  public  captured:boolean;
-  // public pinnedMoves: Array<PinnedMoves>;
-  private inCheck:boolean;
-  public isPinned:boolean;
-  public pinningPiece: boolean;
-  private passingPawn: boolean;
-  private neverMoved = true;
-  public pieceType: string;
-  public pieceColor: string;
-  private move;
-  private lastMoveTime = new Date();
-  private lastPosition: Array<number>;
-  private boardPosition: Array<number>;
-  readonly id: string = v4();
-}
 
 const Gamelogic = () => {
 
   let boardID = v4();
+
+  //need a session or gameid id when creating a new game
   
   const GRIDWIDTH = 8;
-  
-  //string length can't be non-zero and not a valid chess piece name.
-  //if it is a single space " " it will cause issues
-  let capturedWhite: Array<string> = [];
-  
-  let capturedBlack: Array<string> = [];
   
   const blackAttacking: Array<Array<Array<Coords>>> = [ 
     [null, null, null, null, null, null, null, null],
@@ -227,35 +101,44 @@ const Gamelogic = () => {
   ];
 
   let initialPositions: Array<string[]> = [ 
-    ["rook black", "knight black", "bishop black", "queen black", "king black", "bishop black", "knight black", "rook black"],
-    ["pawn black", "pawn black", "pawn black", "pawn black", "pawn black", "pawn black", "pawn black", "pawn black"],
-    ["", "", "", "", "", "", "", ""],
-    ["", "", "", "", "", "", "", ""],
-    ["", "", "", "", "", "", "", ""],
-    ["", "", "", "", "", "", "", ""],
-    ["pawn white", "pawn white", "pawn white", "pawn white", "pawn white", "pawn white", "pawn white", "pawn white"],
-    ["rook white", "knight white", "bishop white", "queen white", "king white", "bishop white", "knight white", "rook white"]
+  ["rook white", "knight white", "bishop white", "king white", "queen white", "bishop white", "knight white", "rook white"],
+  ["pawn white", "pawn white", "pawn white", "pawn white", "pawn white", "pawn white", "pawn white", "pawn white"],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["pawn black", "pawn black", "pawn black", "pawn black", "pawn black", "pawn black", "pawn black", "pawn black"],
+  ["rook black", "knight black", "bishop black", "king black", "queen black", "bishop black", "knight black", "rook black"],
   ]; 
 
   let basicPositions: Array<string[]> = [ 
-    ["rook black", "knight black", "bishop black", "queen black", "king black", "bishop black", "knight black", "rook black"],
-    ["pawn black", "pawn black", "pawn black", "pawn black", "pawn black", "pawn black", "pawn black", "pawn black"],
-    ["", "", "", "", "", "", "", ""],
-    ["", "", "", "", "", "", "", ""],
-    ["", "", "", "", "", "", "", ""],
-    ["", "", "", "", "", "", "", ""],
-    ["pawn white", "pawn white", "pawn white", "pawn white", "pawn white", "pawn white", "pawn white", "pawn white"],
-    ["rook white", "knight white", "bishop white", "queen white", "king white", "bishop white", "knight white", "rook white"]
+  ["rook white", "knight white", "bishop white", "king white", "queen white", "bishop white", "knight white", "rook white"],
+  ["pawn white", "pawn white", "pawn white", "pawn white", "pawn white", "pawn white", "pawn white", "pawn white"],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["pawn black", "pawn black", "pawn black", "pawn black", "pawn black", "pawn black", "pawn black", "pawn black"],
+  ["rook black", "knight black", "bishop black", "king black", "queen black", "bishop black", "knight black", "rook black"],
   ];
  
+
+
+  const board = Bitworld().returnNewBitboard();
+  
+  //string length can't be non-zero and not a valid chess piece name.
+  //if it is a single space " " it will cause issues
+  let capturedWhite: Array<string> = [];
+  
+  let capturedBlack: Array<string> = [];
   
   function clone(instance: Chesspiece): Chesspiece {
     const clone = _.cloneDeep(instance);
     return clone;
   }
 
-  let getCheckmate = (king) => {
-
+  const getCheckmate = (king) => {
+    /*
     let kingPos = king.getBoardPosition();
 
     let x = kingPos[0];
@@ -387,12 +270,17 @@ const Gamelogic = () => {
         console.log("checkmate!!");
         return true;
     } else {
+      */
+
       return false;
+
+      /*
     }
+      */
   };
   
   function setAttackedSquares (projectionOpts?: {piece:Chesspiece, targ:Coords, depth: number}) {
-
+    /*
     let materialWhite = 0;
     let materialBlack = 0;
     
@@ -454,7 +342,7 @@ const Gamelogic = () => {
 
     //go through all valid moves and see the value they return
     // setAttackedSquares ({piece:Chesspiece, targ:Coords, depth: number});
-
+    */
     let blackCheckMate = getCheckmate(blackKing);
     let whiteCheckMate = getCheckmate(whiteKing);
   }
@@ -512,219 +400,148 @@ const Gamelogic = () => {
   const getConstructedGrid = () => {
     return constructedPositions;
   };
-
-  function getValidLateralsOld (positions:Coords[], currentPiece:Chesspiece, range:Range, operation:Function):Coords[]{
-    let maxRange;
-     
-    if(range.x === range.y){
-      if(range.x == "max"){
-        maxRange = GRIDWIDTH;
-      } else {
-        maxRange = range.x;
-      }
-    } else {
-        maxRange = range.x;
-    }
-
-    let endHit;
-    const curPos = currentPiece.getBoardPosition();
-    const current = {x:curPos[0], y:curPos[1]};
-
-    let hitObj;
-    
-    const directions = {
-      left: { 
-        axis: "y",
-        dir: -1
-      },
-      right: { 
-        axis: "y",
-        dir: 1
-      },
-      up: { 
-        axis: "x",
-        dir: -1
-      },
-      down: { 
-        axis: "x",
-        dir: 1
-      }
-    };
-
-
-    //always pass in array and return array
-
-    for(const dir in directions){
-      let x, y, start;
-      let index = 0;
-
-      if(directions[dir].axis == "x"){
-        start = x = current.x;
-        y = index;
-      } else if (directions[dir].axis == "y") {
-        x = index;
-        start = y = current.y;
-      }
-      
-      while( !endHit ){
-        if( index != start  && !endHit){
-          hitObj = basicPositions[x][y]; 
-          if(hitObj.length){
-            endHit = true;
-          }
-          positions = operation({ x: x, y: y}, positions);
-        }
-        index = index+1;
-
-        if( index == GRIDWIDTH || index == -1){
-          endHit = true;
-        }
-
-      }
-    }
-    return positions;
-  }
-  
   
   function getHorseyMoves (positions:Coords[], currentPiece:Chesspiece, operation:Function):Coords[]{
-    const curPos = currentPiece.getBoardPosition();
-    const current = {x:curPos[0], y:curPos[1]};
-    const x = current.x;
-    const y = current.y;
+    // const curPos = currentPiece.getBoardPosition();
+    // const current = {x:curPos[0], y:curPos[1]};
+    // const x = current.x;
+    // const y = current.y;
     
     
-    //this is one of the clearest ways of doing this since there are a finate and small number of states.
-    if( x+1 < GRIDWIDTH && y + 2 < GRIDWIDTH){
-      positions = operation({ x: x+1,  y: y+2 }, positions);
-    }
+    // //this is one of the clearest ways of doing this since there are a finate and small number of states.
+    // if( x+1 < GRIDWIDTH && y + 2 < GRIDWIDTH){
+    //   positions = operation({ x: x+1,  y: y+2 }, positions);
+    // }
 
-    if( x-1 >= 0 && y+2 < GRIDWIDTH){
-      positions = operation({ x: x-1,  y: y+2 }, positions);
-    }
+    // if( x-1 >= 0 && y+2 < GRIDWIDTH){
+    //   positions = operation({ x: x-1,  y: y+2 }, positions);
+    // }
 
-    if( x+1 < GRIDWIDTH && y-2 >= 0){
-      positions = operation({ x: x+1,  y: y-2 }, positions);
-    }
+    // if( x+1 < GRIDWIDTH && y-2 >= 0){
+    //   positions = operation({ x: x+1,  y: y-2 }, positions);
+    // }
 
-    if( x-1 >= 0 && y-2 >= 0){
-      positions = operation({ x: x-1,  y: y-2 }, positions);
-    }
+    // if( x-1 >= 0 && y-2 >= 0){
+    //   positions = operation({ x: x-1,  y: y-2 }, positions);
+    // }
 
-    if( x-2 >= 0 && y-1 >= 0){
-      positions = operation({ x: x-2,  y: y-1}, positions);
-    }
+    // if( x-2 >= 0 && y-1 >= 0){
+    //   positions = operation({ x: x-2,  y: y-1}, positions);
+    // }
 
-    if( x+2 < GRIDWIDTH && y+1 < GRIDWIDTH ){
-      positions = operation({ x: x+2,  y: y+1}, positions);
-    }
+    // if( x+2 < GRIDWIDTH && y+1 < GRIDWIDTH ){
+    //   positions = operation({ x: x+2,  y: y+1}, positions);
+    // }
 
-    if( x-2 >=0 && y +1 < GRIDWIDTH){
-      positions = operation({ x: x-2,  y: y+1 }, positions);
-    }
+    // if( x-2 >=0 && y +1 < GRIDWIDTH){
+    //   positions = operation({ x: x-2,  y: y+1 }, positions);
+    // }
 
-    if( x+2 < GRIDWIDTH && y -1 >= 0){
-      positions = operation({ x: x+2,  y: y-1 }, positions);
-    }
+    // if( x+2 < GRIDWIDTH && y -1 >= 0){
+    //   positions = operation({ x: x+2,  y: y-1 }, positions);
+    // }
 
     return positions;
   }
 
   function getPawnMoves (positions:Coords[], currentPiece:Chesspiece, operation:Function):Coords[]{
-    const curPos = currentPiece.getBoardPosition();
-    const current = {x:curPos[0], y:curPos[1]};
-    const x = current.x;
-    const y = current.y;
-    let targetPos2 = "";
-    let targetPos3 = "";
+    /*
+     const curPos = currentPiece.getBoardPosition();
+     const current = {x:curPos[0], y:curPos[1]};
+     const x = current.x;
+     const y = current.y;
+     let targetPos2 = "";
+     let targetPos3 = "";
+         if(orientation[currentPiece.pieceColor] == "down" && x+1< GRIDWIDTH){
+         targetPos2 = basicPositions[x+1][y];  
+         if(x+2 < GRIDWIDTH){
+           targetPos3 = basicPositions[x+2][y];  
+         } else {
+           targetPos3 = basicPositions[x+1][y];  
+         }
+
+       const leftPiece = getPieceByCoords({x: x+1, y: y-1});
+       const rightPiece = getPieceByCoords({x: x+1, y: y+1});
+
+       if(x == 4){
+         //check if 
+         const adjacentLeft = getPieceByCoords({x: x, y: y-1});
+         const adjacentRight = getPieceByCoords({x: x, y: y+1});
+
+         if(adjacentRight!= null && adjacentRight!= undefined){
+           if(adjacentRight.getPassingPawn() == true){
+             positions = operation({ y: adjacentRight.getBoardPosition()[1],  x: adjacentRight.getBoardPosition()[0] + 1 }, positions); 
+           }
+         }
+      
+         if(adjacentLeft!= null && adjacentLeft!= undefined){
+             positions = operation({ y: adjacentLeft.getBoardPosition()[1],  x: adjacentLeft.getBoardPosition()[0] + 1 }, positions); 
+         }
+       }
+
+       if( leftPiece!== null && leftPiece!= undefined && orientation[leftPiece.pieceColor] == "up"){
+         positions = operation({ y: y-1,  x: x+1}, positions); 
+       }
+
+       if( rightPiece!== null && rightPiece!= undefined  &&orientation[rightPiece.pieceColor] == "up"){
+         positions = operation({ y: y+1,  x: x + 1}, positions); 
+       }
     
-    if(orientation[currentPiece.pieceColor] == "down" && x+1< GRIDWIDTH){
-        targetPos2 = basicPositions[x+1][y];  
-        if(x+2 < GRIDWIDTH){
-          targetPos3 = basicPositions[x+2][y];  
-        } else {
-          targetPos3 = basicPositions[x+1][y];  
-        }
+       if(targetPos2 == ""){
+         positions = operation({ y: y,  x: x + 1 }, positions); 
+         if(targetPos3 == "" && currentPiece.getNeverMoved() == true ){
+           positions = operation({ y: y,  x: x + 2, notAttacking: true}, positions);
+         }
+       }
 
-      const leftPiece = getPieceByCoords({x: x+1, y: y-1});
-      const rightPiece = getPieceByCoords({x: x+1, y: y+1});
+       return positions;
+     } else if (orientation[currentPiece.pieceColor] == "up" && x-1 >= 0) {
+       targetPos2 = basicPositions[x-1][y];
+       if(x-2 >= 0){
+         targetPos3 = basicPositions[x-2][y];  
+       } else {
+         targetPos3 = basicPositions[x-1][y];   
+       }
 
-      if(x == 4){
-        //check if 
-        const adjacentLeft = getPieceByCoords({x: x, y: y-1});
-        const adjacentRight = getPieceByCoords({x: x, y: y+1});
+       const leftPiece = getPieceByCoords({x: x-1, y: y-1});
+       const rightPiece = getPieceByCoords({x: x-1, y: y+1});
 
-        if(adjacentRight!= null && adjacentRight!= undefined){
-          if(adjacentRight.getPassingPawn() == true){
-            positions = operation({ y: adjacentRight.getBoardPosition()[1],  x: adjacentRight.getBoardPosition()[0] + 1 }, positions); 
-          }
-        }
-        
-        if(adjacentLeft!= null && adjacentLeft!= undefined){
-            positions = operation({ y: adjacentLeft.getBoardPosition()[1],  x: adjacentLeft.getBoardPosition()[0] + 1 }, positions); 
-        }
-      }
+       if(x == 3){
+         //check if 
+         const adjacentLeft = getPieceByCoords({x: x, y: y-1});
+         const adjacentRight = getPieceByCoords({x: x, y: y+1});
 
-      if( leftPiece!== null && leftPiece!= undefined && orientation[leftPiece.pieceColor] == "up"){
-        positions = operation({ y: y-1,  x: x+1}, positions); 
-      }
-
-      if( rightPiece!== null && rightPiece!= undefined  &&orientation[rightPiece.pieceColor] == "up"){
-        positions = operation({ y: y+1,  x: x + 1}, positions); 
-      }
+         if(adjacentRight!= null && adjacentRight!= undefined){
+           if(adjacentRight.getPassingPawn() == true){
+             positions = operation({ y: adjacentRight.getBoardPosition()[1],  x: adjacentRight.getBoardPosition()[0] - 1 }, positions); 
+           }
+         }
       
-      if(targetPos2 == ""){
-        positions = operation({ y: y,  x: x + 1 }, positions); 
-        if(targetPos3 == "" && currentPiece.getNeverMoved() == true ){
-          positions = operation({ y: y,  x: x + 2, notAttacking: true}, positions);
-        }
-      }
+         if(adjacentLeft!= null && adjacentLeft!= undefined){
+           if(adjacentLeft.getPassingPawn() == true){
+             positions = operation({ y: adjacentLeft.getBoardPosition()[1],  x: adjacentLeft.getBoardPosition()[0] - 1 }, positions); 
+           }
+         }
+       }
 
-      return positions;
-    } else if (orientation[currentPiece.pieceColor] == "up" && x-1 >= 0) {
-      targetPos2 = basicPositions[x-1][y];
-      if(x-2 >= 0){
-        targetPos3 = basicPositions[x-2][y];  
-      } else {
-        targetPos3 = basicPositions[x-1][y];   
-      }
+       if( leftPiece!== null && leftPiece!= undefined  && orientation[leftPiece.pieceColor] == "down"){
+         positions = operation({ y: y-1,  x: x - 1 }, positions); 
+       }
 
-      const leftPiece = getPieceByCoords({x: x-1, y: y-1});
-      const rightPiece = getPieceByCoords({x: x-1, y: y+1});
+       if( rightPiece!== null && rightPiece!= undefined && orientation[rightPiece.pieceColor] == "down"){
+         positions = operation({ y: y+1,  x: x - 1}, positions); 
+       }
+    
+       if(targetPos2 == ""){
+         positions = operation({ y: y,  x: x - 1 }, positions); 
+         if(targetPos3 == "" && currentPiece.getNeverMoved() == true ){
+           positions = operation({ y: y,  x: x - 2, notAttacking: true}, positions); 
+         }
+       }
+       return positions;
+     }
 
-      if(x == 3){
-        //check if 
-        const adjacentLeft = getPieceByCoords({x: x, y: y-1});
-        const adjacentRight = getPieceByCoords({x: x, y: y+1});
-
-        if(adjacentRight!= null && adjacentRight!= undefined){
-          if(adjacentRight.getPassingPawn() == true){
-            positions = operation({ y: adjacentRight.getBoardPosition()[1],  x: adjacentRight.getBoardPosition()[0] - 1 }, positions); 
-          }
-        }
-        
-        if(adjacentLeft!= null && adjacentLeft!= undefined){
-          if(adjacentLeft.getPassingPawn() == true){
-            positions = operation({ y: adjacentLeft.getBoardPosition()[1],  x: adjacentLeft.getBoardPosition()[0] - 1 }, positions); 
-          }
-        }
-      }
-
-      if( leftPiece!== null && leftPiece!= undefined  && orientation[leftPiece.pieceColor] == "down"){
-        positions = operation({ y: y-1,  x: x - 1 }, positions); 
-      }
-
-      if( rightPiece!== null && rightPiece!= undefined && orientation[rightPiece.pieceColor] == "down"){
-        positions = operation({ y: y+1,  x: x - 1}, positions); 
-      }
-      
-      if(targetPos2 == ""){
-        positions = operation({ y: y,  x: x - 1 }, positions); 
-        if(targetPos3 == "" && currentPiece.getNeverMoved() == true ){
-          positions = operation({ y: y,  x: x - 2, notAttacking: true}, positions); 
-        }
-      }
-      return positions;
-    }
+     */
     return positions;
   }
    
@@ -733,6 +550,7 @@ const Gamelogic = () => {
 
   function getValidLaterals (positions:Coords[], currentPiece:Chesspiece, range:Range, operation:Function, options):Coords[]{
 
+    /*
     let maxRange:string|number = 2;
 
     if(range.x === range.y){
@@ -1020,11 +838,12 @@ const Gamelogic = () => {
         upwardHit = true;
       }
     } 
-
+    */
     return positions;
   }
   
   function getValidDiagonals (positions:Coords[], currentPiece:Chesspiece, range:Range, operation:Function, options):Coords[]{
+    /*
     const curPos = currentPiece.getBoardPosition();
     const current = {x:curPos[0], y:curPos[1]};
 
@@ -1298,10 +1117,12 @@ const Gamelogic = () => {
   if(new Error().stack.indexOf("movePiece") != -1){
     // console.log(positions);
   }
-  
+  */
   return positions;
 }
 
+  //can be called by the room manager without a callback, or within setattackedsquares with a callback to build valid moves
+  //TODO: at every major event when get valid moves or set attacked squares is called the heavy lifting should be done by the bitworld and thats where real calculations should take place
   function getValidMoves (location:Coords, operation: Function, options) : Coords[] {
     //CHECK IF THE Sent move and the current move matches.
     //Check if piece is pinned before checking where it can move
@@ -1321,19 +1142,20 @@ const Gamelogic = () => {
 
     const maxDistance = {x:0, y:0};
     
-    const range = currentPiece.getPieceBehavior().move();
-    
-    if(range.x == "max"){
-      maxDistance.x = basicPositions[0].length;
-    } else {
-      maxDistance.x = range.x;
-    }
+    // const range = currentPiece.getPieceBehavior().move();
+    const range = {"x":2, "y":2, "constraint":""};
 
-    if(range.y == "max"){
-      maxDistance.y = basicPositions.length;
-    } else {
+    // if(range.x == "max"){
+    //   maxDistance.x = basicPositions[0].length;
+    // } else {
+      maxDistance.x = range.x;
+    // }
+
+    // if(range.y == "max"){
+    //   maxDistance.y = basicPositions.length;
+    // } else {
       maxDistance.y = range.y;
-    }
+    // }
 
     let validPositions:Coords[] = []; 
 
@@ -1442,23 +1264,31 @@ const Gamelogic = () => {
     return {moves: moves, attackerOrigin: attackerOrigin, checkBlocked: checkBlocked, filteredMoves:filteredMoves, doubleCheck:doubleCheck};
   };
 
+  //TODO:ensure that BB is returned here instead of 'basicpositions'. This function should be used every time the board is requested from a client
   const getBasicBoard = () => { 
-    return basicPositions;
+    const currentBasicPositions = board.boardsToStringArray();
+    return currentBasicPositions;
+  };
+
+  //TODO:ensure that BB is returned here instead of 'basicpositions'. This function should be used every time the board is requested from a client
+  const getAttackedPositions = (): Array<Array<string[]>> => { 
+    const attackedPositions = board.attacksToStringArray();
+    return attackedPositions;
   };
  
-  const movePiece = (moveData):{completed: boolean, newBoard: string[][], gameState: string, captured:{capturedWhite: string[], capturedBlack:string[]}} =>{
+  const movePiece = (moveData):{completed: boolean, newBoard: string[][], gameState: string, captured:{capturedWhite: string[], capturedBlack:string[]}} => {
 
     const piece = getPieceByID(moveData.location);
     const targetPiece = getPieceByID(moveData.target);
 
-    const newMoveData = getPinnedMoves(moveData);
+    // const newMoveData = getPinnedMoves(moveData); //this function needs to be reworked to use the bitboard calls
 
-    let moves = newMoveData.moves;
-    const doubleCheck = newMoveData.doubleCheck;
-    const filteredMoves = newMoveData.filteredMoves;
+    // let moves = newMoveData.moves;
+    // const doubleCheck = newMoveData.doubleCheck;
+    // const filteredMoves = newMoveData.filteredMoves;
 
-    const checkBlocked = newMoveData.checkBlocked;
-    const attackerOrigin = newMoveData.attackerOrigin;
+    // const checkBlocked = newMoveData.checkBlocked;
+    // const attackerOrigin = newMoveData.attackerOrigin;
 
     let targetPosAttacks = [];
     let defenders;
@@ -1470,7 +1300,39 @@ const Gamelogic = () => {
       defenders = whiteAttacking;
     } 
 
+    const fromx:number = parseInt(moveData.location[0]);
+    const fromy:number = parseInt(moveData.location[2]);
+    const tox:number = parseInt(moveData.target[0]);
+    const toy:number = parseInt(moveData.target[2]);
 
+    const targ1 = board.getPieceAtSquare(fromx, fromy);
+    const targ2 = board.getPieceAtSquare(tox, toy);
+
+    //the process for getting valid moves, pinned movies, checking if a piece is pinned to the king should be 100x faster, and easier to do
+    //the order of operations should be the same
+    //evaluate the success or fail of the move by returning a result
+    const moveSucceeded = board.movePieceInBitBoard(fromx, fromy, tox, toy);
+
+    // Bitboard move is authoritative for now. If it succeeded, return the updated board so
+    // the server can broadcast it and the UI can re-render.
+    if (!moveSucceeded) {
+      return {
+        completed: false,
+        newBoard: getBasicBoard(),
+        gameState: "",
+        captured: { capturedWhite, capturedBlack },
+      };
+    }
+
+    return {
+      completed: true,
+      newBoard: getBasicBoard(),
+      gameState: "",
+      captured: { capturedWhite, capturedBlack },
+    };
+    
+    
+    /*
     //checkmate not working
     //castling not working 
     //check any move, if the move is valid 
@@ -1488,7 +1350,7 @@ const Gamelogic = () => {
         }
         if(!blocked){
           setAttackedSquares();
-          return {completed: false, newBoard: basicPositions, 
+          return {completed: false, newBoard: getBasicBoard(), 
             gameState: "",
             captured: { capturedWhite,
                         capturedBlack
@@ -1503,7 +1365,7 @@ const Gamelogic = () => {
   
       if(attackerOrigin && !checkBlocked){
         setAttackedSquares();
-        return {completed: false, newBoard: basicPositions, 
+        return {completed: false, newBoard: getBasicBoard(), 
           gameState: "",
           captured: { capturedWhite,
                       capturedBlack
@@ -1520,7 +1382,7 @@ const Gamelogic = () => {
       //don't allow the move if a double check is active
       if(doubleCheck || (filteredMoves!= undefined && filteredMoves.length == 0 && (!checkBlocked || (targetPiece && targetPiece.pieceType == "king")))){
         setAttackedSquares();
-        return {completed: false, newBoard: basicPositions, 
+        return {completed: false, newBoard: getBasicBoard(), 
           gameState: "",
           captured: { capturedWhite,
                       capturedBlack
@@ -1573,7 +1435,7 @@ const Gamelogic = () => {
           constructedPositions[pieceCoords2.x][pieceCoords2.y].setBoardPosition(pieceCoords2.x, pieceCoords2.y);
 
           setAttackedSquares();
-          return {completed: true, newBoard: basicPositions, 
+          return {completed: true, newBoard: getBasicBoard(), 
             gameState: "",
             captured: { capturedWhite,
                         capturedBlack
@@ -1586,7 +1448,7 @@ const Gamelogic = () => {
       (targetPiece != null && (piece.pieceColor === targetPiece.pieceColor))){
 
         setAttackedSquares();
-        return {completed: false, newBoard: basicPositions, 
+        return {completed: false, newBoard: getBasicBoard(), 
           gameState: "",
           captured: { capturedWhite,
                       capturedBlack
@@ -1600,7 +1462,7 @@ const Gamelogic = () => {
     //if it's in the same spot
     if(pieceCoords.x === targetCoords.x && pieceCoords.y === targetCoords.y){
         setAttackedSquares();
-        return {completed: false, newBoard: basicPositions, 
+        return {completed: false, newBoard: getBasicBoard(), 
           gameState: "",
           captured: { capturedWhite,
                       capturedBlack
@@ -1622,7 +1484,7 @@ const Gamelogic = () => {
 
           if(defenders[moveData.target[0]][moveData.target[2]][i].blocked == true){
             setAttackedSquares();
-            return {completed: false, newBoard: basicPositions, 
+            return {completed: false, newBoard: getBasicBoard(), 
               gameState: "",
               captured: { capturedWhite,
                           capturedBlack
@@ -1645,7 +1507,7 @@ const Gamelogic = () => {
         constructedPositions[targetCoords.x][targetCoords.y].setBoardPosition(targetCoords.x, targetCoords.y);
 
         setAttackedSquares();
-        return {completed: true, newBoard: basicPositions, 
+        return {completed: true, newBoard: getBasicBoard(), 
           gameState: "",
           captured: { capturedWhite,
                       capturedBlack
@@ -1684,7 +1546,7 @@ const Gamelogic = () => {
         }
 
         setAttackedSquares();
-        return {completed: true, newBoard: basicPositions,
+        return {completed: true, newBoard: getBasicBoard(),
           gameState: "",
           captured: { capturedWhite,
                       capturedBlack
@@ -1693,15 +1555,19 @@ const Gamelogic = () => {
     } else {
 
         setAttackedSquares();
+
+        */
         return {
-          completed: false, newBoard: basicPositions,
+          completed: false, newBoard: getBasicBoard(),
           gameState: "",
           captured: { capturedWhite,
                       capturedBlack
                     }
                   };
 
+                  /*
     }
+                  */
   };
 
 
