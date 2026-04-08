@@ -47,32 +47,18 @@ let initialPositions: Array<string[]> = [
 const Chessboard: React.FC = (): ReactElement => {
   const [delayedEvents, setDelayedEvents] = useState([]);
 
-  // Process delayed events after React has applied state updates.
-  useEffect(() => {
-    if (!delayedEvents.length) return;
-
-    const timeoutId = setTimeout(() => {
-      setDelayedEvents((prev) => {
-        const remaining = [];
-
-        for (let i = 0; i < prev.length; i++) {
-          const evt = prev[i];
-          if (!evt) continue;
-
-          if (evt.command === "finishMove") {
-            finishMoveLocal(evt.location, evt.target, evt.moveID, evt.newBoard);
-            continue;
-          }
-
-          remaining.push(evt);
+  //pass a move uuid from the backend and a time.
+  const intervalID = setInterval(() => { 
+    for(let i = 0; i < delayedEvents.length; i ++){
+      if (delayedEvents[i] && delayedEvents[i].command == "finishMove") {
+        if(finishMoveLocal(delayedEvents[i].location, delayedEvents[i].target, delayedEvents[i].moveID, delayedEvents[i].newBoard )){
+          delayedEvents[i] = null;       
         }
+      }
+    }
 
-        return remaining;
-      });
-    }, 50);
-
-    return () => clearTimeout(timeoutId);
-  }, [delayedEvents]);
+    clearInterval(intervalID);
+  }, 50); //t
 
 
   // useEffect(() => {
@@ -98,7 +84,8 @@ const Chessboard: React.FC = (): ReactElement => {
       } else if(inputCommands && inputCommands.command == "finishForeignMove"){
         finishForeignMove( inputCommands.location, inputCommands.target, inputCommands.moveID, inputCommands.newBoard);
       } else if (inputCommands && inputCommands.command == "finishMove") {
-        setDelayedEvents((prev) => [...prev, inputCommands]);
+        setDelayedEvents([...delayedEvents, inputCommands] ); 
+
       } else if (inputCommands && inputCommands.command == "receiveRoomInfo") {
         // setFocusedRoom(inputCommands.roomName);
       } else if (inputCommands && inputCommands.command == "updateRoomList") {

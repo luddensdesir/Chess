@@ -1278,8 +1278,8 @@ const Gamelogic = () => {
  
   const movePiece = (moveData):{completed: boolean, newBoard: string[][], gameState: string, captured:{capturedWhite: string[], capturedBlack:string[]}} => {
 
-    const piece = getPieceByID(moveData.location);
-    const targetPiece = getPieceByID(moveData.target);
+    // const piece = getPieceByID(moveData.location);
+    // const targetPiece = getPieceByID(moveData.target);
 
     // const newMoveData = getPinnedMoves(moveData); //this function needs to be reworked to use the bitboard calls
 
@@ -1292,13 +1292,13 @@ const Gamelogic = () => {
 
     let targetPosAttacks = [];
     let defenders;
-    if(piece.pieceColor == "black"){
-      targetPosAttacks = whiteAttacking[moveData.target[0]][moveData.target[2]];
-      defenders = blackAttacking;
-    } else {
-      targetPosAttacks = blackAttacking[moveData.target[0]][moveData.target[2]];
-      defenders = whiteAttacking;
-    } 
+    // if(piece.pieceColor == "black"){
+    //   targetPosAttacks = whiteAttacking[moveData.target[0]][moveData.target[2]];
+    //   defenders = blackAttacking;
+    // } else {
+    //   targetPosAttacks = blackAttacking[moveData.target[0]][moveData.target[2]];
+    //   defenders = whiteAttacking;
+    // } 
 
     const fromx:number = parseInt(moveData.location[0]);
     const fromy:number = parseInt(moveData.location[2]);
@@ -1312,6 +1312,9 @@ const Gamelogic = () => {
     //the order of operations should be the same
     //evaluate the success or fail of the move by returning a result
     const moveSucceeded = board.movePieceInBitBoard(fromx, fromy, tox, toy);
+
+    const a = getAttackedPositions();
+    console.dir(a);
 
     // Bitboard move is authoritative for now. If it succeeded, return the updated board so
     // the server can broadcast it and the UI can re-render.

@@ -14,7 +14,12 @@ if( ((process.env.HEROKU || process.env.AWS) === "true") || (__dirname.indexOf("
         user:{
             secret: env.JWT_SECRET
         },
-        dbCreds: env.MONGODB_URI
+        dbCreds: {
+            mongoUser: env.mongoUser, 
+            prodUrl: env.prodUrl,
+            mongoPassword: env.mongoPassword,
+            devUrl: "mongodb://127.0.0.1:27017/chess"
+        }
     };
 
 } else {
